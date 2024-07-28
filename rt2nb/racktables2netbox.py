@@ -1045,7 +1045,7 @@ class NETBOX(object):
             except KeyError:
                 try:
                     custom_field["type"] = self.change_attrib_type(custom_field["type"])
-                    custom_field["content_types"] = [
+                    custom_field["object_types"] = [
                         "circuits.circuit",
                         "circuits.circuittype",
                         "circuits.provider",
@@ -1149,10 +1149,14 @@ class NETBOX(object):
     def create_cable(self, int_1_id, int_2_id):
         nb = self.py_netbox
         data = {
-            "termination_a_type": "dcim.interface",
-            "termination_a_id": int_1_id,
-            "termination_b_type": "dcim.interface",
-            "termination_b_id": int_2_id,
+            "a_terminations": [ {
+                "object_type": "dcim.interface",
+                "object_id": int_1_id,
+            } ],
+            "b_terminations": [ {
+                "object_type": "dcim.interface",
+                "object_id": int_2_id,
+            } ],
         }
         try:
             created = nb.dcim.cables.create(data)
@@ -2873,7 +2877,7 @@ class DB(object):
                     netbox_sites_by_comment = netbox.get_sites_keyd_by_description()
                     devicedata["site"] = netbox_sites_by_comment[rlocation_name]["id"]
 
-                devicedata["device_role"] = self.nb_role_id(object_class_type)
+                devicedata["role"] = self.nb_role_id(object_class_type)
 
                 if not "hardware" in devicedata.keys():
                     if height == None:
@@ -3206,7 +3210,7 @@ class DB(object):
                                 rdata.update({"face": mount})
                                 rdata.update({"rack": rack_id})
                                 rdata.update({"location": rack_location})
-                                rdata["device_role"] = PDU_DEVICE_ROLE
+                                rdata["role"] = PDU_DEVICE_ROLE
                                 rdata["device_type"] = pdudata["device_type"]
                                 rdata.update({"name": pdudata["name"]})
                                 rdata["site"] = site_id
@@ -3274,7 +3278,7 @@ class DB(object):
                         device_added = False
                         try:
                             rdata.update({"rack": rack_id})
-                            rdata["device_role"] = PDU_DEVICE_ROLE
+                            rdata["role"] = PDU_DEVICE_ROLE
                             rdata["device_type"] = pdudata["device_type"]
                             rdata.update({"name": pdudata["name"]})
                             rdata["site"] = site_id
@@ -3392,7 +3396,7 @@ class DB(object):
                 # "type": patch_type,
                 # "comments": item[4],
                 "custom_fields": attribs,
-                "device_role": PATCHING_DEVICE_ROLE,
+                "role": PATCHING_DEVICE_ROLE,
                 "site": site_id,
             }
             if item[4]:
