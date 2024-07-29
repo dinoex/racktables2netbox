@@ -506,8 +506,12 @@ class NETBOX(object):
             dev_int = dev_int.strip("\t")  # somehow i found an interafce with a tab at the end..
             if isinstance(dev_int, list):
                 description = f"{dev_int[2]} rt_import"
+                label = dev_int[1]
+                if label == None:
+                    label = ""
             else:
                 description = "rt_import"
+                label = ""
             pp.pprint(nb_dev_ints)
             if not dev_int in nb_dev_ints.keys():
                 print(f"{dev_int} not in nb_dev_ints, adding")
@@ -517,6 +521,7 @@ class NETBOX(object):
                     "type": int_type,
                     "enabled": True,
                     "description": description,
+                    "label": label,
                 }
                 print(dev_type)
                 if dev_type == "device":
@@ -529,6 +534,7 @@ class NETBOX(object):
             else:
                 if not nb_dev_ints[dev_int].description == description:
                     nb_dev_ints[dev_int].update({"description": description})
+                nb_dev_ints[dev_int].update({"label": label})
                 # print(response)
             for ip in ip_ints[dev_int]:
                 print(ip)
@@ -564,6 +570,9 @@ class NETBOX(object):
                     connected = False
                 else:
                     connected = True
+                label = dev_int[1]
+                if label == None:
+                    label = ""
                 description = f"{dev_int[2]} rt_import"
                 if not dev_int[0] in nb_dev_ints.keys():
                     print(f"{dev_int[0]} not in nb_dev_ints, adding")
@@ -591,7 +600,7 @@ class NETBOX(object):
                         int_type = dev_int[2].lower().split("dwdm80")[0].split("(")[0].strip()
                         if int_type in map_list.keys():
                             int_type = map_list[int_type]
-                    int_data = {"name": dev_int[0], "type": int_type, "enabled": connected, "description": description}
+                    int_data = {"name": dev_int[0], "type": int_type, "enabled": connected, "description": description, "label": label}
                     if dev_type == "device":
                         int_data["device"] = device = nb_device.id
                         response = py_netbox.dcim.interfaces.create(int_data)
@@ -607,6 +616,7 @@ class NETBOX(object):
                                 "enabled": connected,
                             }
                         )
+                    nb_dev_ints[dev_int[0]].update({"label": label})
                 # print(response)
 
     def get_sites_by_rt_id(self):
