@@ -509,9 +509,11 @@ class NETBOX(object):
                 label = dev_int[1]
                 if label == None:
                     label = ""
+                mac_address = dev_int[5]
             else:
                 description = "rt_import"
                 label = ""
+                mac_address = None
             pp.pprint(nb_dev_ints)
             if not dev_int in nb_dev_ints.keys():
                 print(f"{dev_int} not in nb_dev_ints, adding")
@@ -535,6 +537,8 @@ class NETBOX(object):
                 if not nb_dev_ints[dev_int].description == description:
                     nb_dev_ints[dev_int].update({"description": description})
                 nb_dev_ints[dev_int].update({"label": label})
+                if not mac_address == None:
+                    nb_dev_ints[dev_int[0]].update({"mac_address": mac_address})
                 # print(response)
             for ip in ip_ints[dev_int]:
                 print(ip)
@@ -573,6 +577,7 @@ class NETBOX(object):
                 label = dev_int[1]
                 if label == None:
                     label = ""
+                mac_address = dev_int[5]
                 description = f"{dev_int[2]} rt_import"
                 if not dev_int[0] in nb_dev_ints.keys():
                     print(f"{dev_int[0]} not in nb_dev_ints, adding")
@@ -601,6 +606,8 @@ class NETBOX(object):
                         if int_type in map_list.keys():
                             int_type = map_list[int_type]
                     int_data = {"name": dev_int[0], "type": int_type, "enabled": connected, "description": description, "label": label}
+                    if not mac_address == None:
+                        int_data["mac_address"] = mac_address
                     if dev_type == "device":
                         int_data["device"] = device = nb_device.id
                         response = py_netbox.dcim.interfaces.create(int_data)
@@ -617,6 +624,8 @@ class NETBOX(object):
                             }
                         )
                     nb_dev_ints[dev_int[0]].update({"label": label})
+                    if not mac_address == None:
+                        nb_dev_ints[dev_int[0]].update({"mac_address": mac_address})
                 # print(response)
 
     def get_sites_by_rt_id(self):
@@ -3466,7 +3475,8 @@ class DB(object):
                     label,
                     PortOuterInterface.oif_name,
                     Port.id,
-                    object_id
+                    object_id,
+                    l2address
                     FROM Port
                     LEFT JOIN PortOuterInterface ON PortOuterInterface.id = type"""
             cur.execute(q)
