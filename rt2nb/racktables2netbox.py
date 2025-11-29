@@ -506,8 +506,14 @@ class NETBOX(object):
             dev_int = dev_int.strip("\t")  # somehow i found an interafce with a tab at the end..
             if isinstance(dev_int, list):
                 description = f"{dev_int[2]} rt_import"
+                label = dev_int[1]
+                if label == None:
+                    label = ""
+                mac_address = dev_int[5]
             else:
                 description = "rt_import"
+                label = ""
+                mac_address = None
             pp.pprint(nb_dev_ints)
             if not dev_int in nb_dev_ints.keys():
                 print(f"{dev_int} not in nb_dev_ints, adding")
@@ -517,6 +523,7 @@ class NETBOX(object):
                     "type": int_type,
                     "enabled": True,
                     "description": description,
+                    "label": label,
                 }
                 print(dev_type)
                 if dev_type == "device":
@@ -529,6 +536,9 @@ class NETBOX(object):
             else:
                 if not nb_dev_ints[dev_int].description == description:
                     nb_dev_ints[dev_int].update({"description": description})
+                nb_dev_ints[dev_int].update({"label": label})
+                if not mac_address == None:
+                    nb_dev_ints[dev_int[0]].update({"mac_address": mac_address})
                 # print(response)
             for ip in ip_ints[dev_int]:
                 print(ip)
@@ -564,6 +574,10 @@ class NETBOX(object):
                     connected = False
                 else:
                     connected = True
+                label = dev_int[1]
+                if label == None:
+                    label = ""
+                mac_address = dev_int[5]
                 description = f"{dev_int[2]} rt_import"
                 if not dev_int[0] in nb_dev_ints.keys():
                     print(f"{dev_int[0]} not in nb_dev_ints, adding")
@@ -591,7 +605,9 @@ class NETBOX(object):
                         int_type = dev_int[2].lower().split("dwdm80")[0].split("(")[0].strip()
                         if int_type in map_list.keys():
                             int_type = map_list[int_type]
-                    int_data = {"name": dev_int[0], "type": int_type, "enabled": connected, "description": description}
+                    int_data = {"name": dev_int[0], "type": int_type, "enabled": connected, "description": description, "label": label}
+                    if not mac_address == None:
+                        int_data["mac_address"] = mac_address
                     if dev_type == "device":
                         int_data["device"] = device = nb_device.id
                         response = py_netbox.dcim.interfaces.create(int_data)
@@ -607,6 +623,9 @@ class NETBOX(object):
                                 "enabled": connected,
                             }
                         )
+                    nb_dev_ints[dev_int[0]].update({"label": label})
+                    if not mac_address == None:
+                        nb_dev_ints[dev_int[0]].update({"mac_address": mac_address})
                 # print(response)
 
     def get_sites_by_rt_id(self):
@@ -1045,7 +1064,7 @@ class NETBOX(object):
             except KeyError:
                 try:
                     custom_field["type"] = self.change_attrib_type(custom_field["type"])
-                    custom_field["content_types"] = [
+                    custom_field["object_types"] = [
                         "circuits.circuit",
                         "circuits.circuittype",
                         "circuits.provider",
@@ -1149,10 +1168,14 @@ class NETBOX(object):
     def create_cable(self, int_1_id, int_2_id):
         nb = self.py_netbox
         data = {
-            "termination_a_type": "dcim.interface",
-            "termination_a_id": int_1_id,
-            "termination_b_type": "dcim.interface",
-            "termination_b_id": int_2_id,
+            "a_terminations": [ {
+                "object_type": "dcim.interface",
+                "object_id": int_1_id,
+            } ],
+            "b_terminations": [ {
+                "object_type": "dcim.interface",
+                "object_id": int_2_id,
+            } ],
         }
         try:
             created = nb.dcim.cables.create(data)
@@ -2873,7 +2896,7 @@ class DB(object):
                     netbox_sites_by_comment = netbox.get_sites_keyd_by_description()
                     devicedata["site"] = netbox_sites_by_comment[rlocation_name]["id"]
 
-                devicedata["device_role"] = self.nb_role_id(object_class_type)
+                devicedata["role"] = self.nb_role_id(object_class_type)
 
                 if not "hardware" in devicedata.keys():
                     if height == None:
@@ -3206,7 +3229,7 @@ class DB(object):
                                 rdata.update({"face": mount})
                                 rdata.update({"rack": rack_id})
                                 rdata.update({"location": rack_location})
-                                rdata["device_role"] = PDU_DEVICE_ROLE
+                                rdata["role"] = PDU_DEVICE_ROLE
                                 rdata["device_type"] = pdudata["device_type"]
                                 rdata.update({"name": pdudata["name"]})
                                 rdata["site"] = site_id
@@ -3274,7 +3297,7 @@ class DB(object):
                         device_added = False
                         try:
                             rdata.update({"rack": rack_id})
-                            rdata["device_role"] = PDU_DEVICE_ROLE
+                            rdata["role"] = PDU_DEVICE_ROLE
                             rdata["device_type"] = pdudata["device_type"]
                             rdata.update({"name": pdudata["name"]})
                             rdata["site"] = site_id
@@ -3392,7 +3415,7 @@ class DB(object):
                 # "type": patch_type,
                 # "comments": item[4],
                 "custom_fields": attribs,
-                "device_role": PATCHING_DEVICE_ROLE,
+                "role": PATCHING_DEVICE_ROLE,
                 "site": site_id,
             }
             if item[4]:
@@ -3452,7 +3475,8 @@ class DB(object):
                     label,
                     PortOuterInterface.oif_name,
                     Port.id,
-                    object_id
+                    object_id,
+                    l2address
                     FROM Port
                     LEFT JOIN PortOuterInterface ON PortOuterInterface.id = type"""
             cur.execute(q)

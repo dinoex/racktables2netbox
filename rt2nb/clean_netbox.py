@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import json
 import requests
 import urllib3
 import logging
 import configparser
+import yaml
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -74,9 +76,20 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
 
     # Import config
-    configfile = "conf"
-    config = configparser.ConfigParser()
-    config.read(configfile)
+    # configfile = "conf"
+    # config = configparser.ConfigParser()
+    # config.read(configfile)
+    if os.environ.get("rt2nb_conf_file_name"):
+        conf_file_name = os.environ.get("rt2nb_conf_file_name")
+    else:
+        conf_file_name = "conf.yaml"
+    try:
+        with open(conf_file_name, "r") as stream:
+            config = yaml.safe_load(stream)
+    except:
+        with open(os.getcwd() + "/" + conf_file_name, "r") as stream:
+            config = yaml.safe_load(stream)
+
     api_url_base = "{}/api".format(config["NetBox"]["NETBOX_HOST"])
 
     # Log to file
